@@ -1,4 +1,4 @@
-FROM alpine:3.10 as builder
+FROM alpine:3.11 as builder
 
 ARG VERSION=7.14.0
 ARG DISTRO=tomcat
@@ -15,6 +15,7 @@ ARG MAVEN_PROXY_PASSWORD
 
 ARG JMX_PROMETHEUS_VERSION=0.12.0
 
+RUN apk update
 RUN apk add --no-cache \
         bash \
         ca-certificates \
@@ -22,6 +23,7 @@ RUN apk add --no-cache \
         tar \
         wget \
         xmlstarlet
+RUN apk upgrade
 
 COPY settings.xml download.sh camunda-run.sh camunda-tomcat.sh camunda-wildfly.sh  /tmp/
 
@@ -30,7 +32,7 @@ RUN /tmp/download.sh
 
 ##### FINAL IMAGE #####
 
-FROM alpine:3.10
+FROM alpine:3.11
 
 ARG VERSION=7.14.0
 
@@ -70,6 +72,8 @@ RUN apk add --no-cache \
       "https://raw.githubusercontent.com/vishnubob/wait-for-it/a454892f3c2ebbc22bd15e446415b8fcb7c1cfa4/wait-for-it.sh" \
     && chmod +x /usr/local/bin/wait-for-it.sh
 
+RUN apk update && apk upgrade
+
 RUN addgroup -g 1000 -S camunda && \
     adduser -u 1000 -S camunda -G camunda -h /camunda -s /bin/bash -D camunda
 WORKDIR /camunda
@@ -79,3 +83,6 @@ ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["./camunda.sh"]
 
 COPY --chown=camunda:camunda --from=builder /camunda .
+
+# Geting rid of vulnerabilities-related jquery library
+RUN rm -rf webapps/camunda-invoice/assets/vendor
